@@ -64,6 +64,24 @@ FIELDS ={'rdf-schema#label': 'label',
          'genus_label': 'genus'}
 
 
+
+
+
+def processing_helper(line, keys, fields ):
+  items = {}
+
+  
+  #create a new dictionary
+  #the new dictionary's keys are the values of the FILEDS map
+  for key in keys:
+    real_key = fields[key]
+    actual_value = line[key]
+    items[real_key] = actual_value
+
+    
+
+  return items
+
 def process_file(filename, fields):
 
     process_fields = fields.keys()
@@ -74,7 +92,11 @@ def process_file(filename, fields):
             l = reader.next()
 
         for line in reader:
-            # YOUR CODE HERE
+            items = processing_helper(line, process_fields, fields)
+            if items:
+              data.append(items)
+            
+
             pass
     return data
 
