@@ -74,13 +74,54 @@ def processing_helper(line, keys, fields ):
   #create a new dictionary
   #the new dictionary's keys are the values of the FILEDS map
   for key in keys:
+
     real_key = fields[key]
     actual_value = line[key]
-    items[real_key] = actual_value
+
+
+
+    #remove redundat lables in the perentheses
+    if real_key == 'label' and actual_value.find('(') != -1:
+      ind1 = actual_value.find('(')
+      
+      actual_value = actual_value[0:ind1]
+      actual_value = actual_value.strip()
+
+    elif actual_value == 'NULL' or not re.match(r'\w+',actual_value):
+        actual_value = None
+    elif real_key == 'synonym':
+      actual_value = parse_array(actual_value)
+    
+
+
+    if re.match(r'.*_label',key):
+      if 'classification' not in items.keys():
+        items['classification'] = {}
+      items['classification'][real_key] = actual_value
+    else:
+      items[real_key] = actual_value
 
     
 
   return items
+
+
+def fix_classification(items, line):
+
+  print line
+  clasf = line['classification']
+
+  if clasf:
+    for key in clasf:
+      if clasf[key] == 'NULL' or not re.match(r'\w+',clasf[key]):
+        clasf[key] = None
+
+        items['classification'] = clasf
+
+
+
+  return items
+
 
 def process_file(filename, fields):
 
@@ -93,6 +134,8 @@ def process_file(filename, fields):
 
         for line in reader:
             items = processing_helper(line, process_fields, fields)
+            #items = fix_classification(items,line)
+
             if items:
               data.append(items)
             
@@ -132,10 +175,10 @@ def test():
     }
 
     assert len(data) == 76
-    assert data[0] == first_entry
     assert data[17]["name"] == "Ogdenia"
     assert data[48]["label"] == "Hydrachnidiae"
     assert data[14]["synonym"] == ["Cyrene Peckham & Peckham"]
+    assert data[0] == first_entry
 
 if __name__ == "__main__":
     test()
