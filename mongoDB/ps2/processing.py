@@ -78,8 +78,6 @@ def processing_helper(line, keys, fields ):
     real_key = fields[key]
     actual_value = line[key]
 
-
-
     #remove redundat lables in the perentheses
     if real_key == 'label' and actual_value.find('(') != -1:
       ind1 = actual_value.find('(')
@@ -87,13 +85,18 @@ def processing_helper(line, keys, fields ):
       actual_value = actual_value[0:ind1]
       actual_value = actual_value.strip()
 
-    elif actual_value == 'NULL' or not re.match(r'\w+',actual_value):
-        actual_value = None
     elif real_key == 'synonym':
-      actual_value = parse_array(actual_value)
+      if actual_value == 'NULL':
+        actual_value = None
+        
+      else:
+        actual_value = parse_array(actual_value)
+      
+    elif actual_value == 'NULL' or not re.match(r'\w+',actual_value):
+
+        actual_value = None
+
     
-
-
     if re.match(r'.*_label',key):
       if 'classification' not in items.keys():
         items['classification'] = {}
@@ -106,26 +109,20 @@ def processing_helper(line, keys, fields ):
   return items
 
 
-def fix_classification(items, line):
+def fix_names(line, items, keys, fields ):
+  
+  name = line['name']
 
-  print line
-  clasf = line['classification']
-
-  if clasf:
-    for key in clasf:
-      if clasf[key] == 'NULL' or not re.match(r'\w+',clasf[key]):
-        clasf[key] = None
-
-        items['classification'] = clasf
-
+  if name == 'NULL' or not re.match(r'\w+',name):
+    items['name'] = items['label']
 
 
   return items
 
-
 def process_file(filename, fields):
 
     process_fields = fields.keys()
+    
     data = []
     with open(filename, "r") as f:
         reader = csv.DictReader(f)
@@ -133,14 +130,19 @@ def process_file(filename, fields):
             l = reader.next()
 
         for line in reader:
-            items = processing_helper(line, process_fields, fields)
-            #items = fix_classification(items,line)
 
-            if items:
-              data.append(items)
+          items = processing_helper(line, process_fields, fields)
+          items = fix_names(line, items, process_fields, fields)
+          
+          if items:
+            if items['name'] != items['label']:
+              print items['name'] 
+              print items['label']
+
+            data.append(items)
             
 
-            pass
+            
     return data
 
 
@@ -151,6 +153,10 @@ def parse_array(v):
         v_array = v.split("|")
         v_array = [i.strip() for i in v_array]
         return v_array
+
+
+    if v == 'NULL':
+      v = None
     return [v]
 
 
