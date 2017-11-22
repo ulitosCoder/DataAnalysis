@@ -95,13 +95,73 @@ CREATED = [ "version", "changeset", "timestamp", "user", "uid"]
 
 
 def shape_element(element):
-    node = {}
-    if element.tag == "node" or element.tag == "way" :
-        # YOUR CODE HERE
+  node = {}
+
+
+  if element.tag == "node" or element.tag == "way":
+    
+    node["type"] = element.tag
+
+    attrs = element.attrib
+    
+
+    for atr in attrs:
+      
+      value = attrs[atr]
+      if atr in CREATED:
         
-        return node
-    else:
-        return None
+        if 'created' not in node:
+          node['created'] = {}
+        
+        node['created'][atr] = value
+
+      elif atr in ["lat", "lon"]:
+        if "pos" not in node.keys():
+          node["pos"] = [0,0]
+
+        if atr == "lat":
+          node["pos"][0] = float(value)
+        else:
+          node["pos"][1] = float(value)
+
+
+      else:                
+        node[atr] = value
+
+      children = element.findall("tag")
+      if len(children):
+        for child in children:
+          
+            chattrs = child.attrib
+            k = chattrs['k']
+            if k.find("addr:") != -1:
+              if "address" not in node:
+                node["address"] = {}
+
+              if k.find("housenumber") != -1:
+                node["address"]["housenumber"] = chattrs['v']
+              elif re.match(r"addr:street$", k):
+                node["address"]["street"] = chattrs['v']
+
+      children = element.findall("nd")
+      if len(children):
+        
+        for child in children:
+            chattrs = child.attrib
+
+            if "node_refs" not in node.keys():
+              node["node_refs"] = []
+
+            ref = chattrs['ref']
+
+            if ref not in node["node_refs"]:
+              node["node_refs"].append( ref )
+            
+
+    return node
+
+  else:
+    return None
 
 
 def process_map(file_in, pretty = False):
@@ -139,13 +199,16 @@ def test():
             "timestamp": "2012-03-28T18:31:23Z"
         }
     }
+    
+    
     assert data[0] == correct_first_elem
     assert data[-1]["address"] == {
                                     "street": "West Lexington St.", 
                                     "housenumber": "1412"
                                       }
-    assert data[-1]["node_refs"] == [ "2199822281", "2199822390",  "2199822392", "2199822369", 
-                                    "2199822370", "2199822284", "2199822281"]
+    print data[-1]["node_refs"]
+    print data[-1]["type"]
+    assert data[-1]["node_refs"] == [ "2199822281", "2199822390",  "2199822392", "2199822369", "2199822370", "2199822284", "2199822281"]
 
 if __name__ == "__main__":
     test()
