@@ -96,51 +96,49 @@ should be turned into
 """
 
 
+# Regular expression to match lower case names and under score
 lower = re.compile(r'^([a-z]|_)*$')
+
+# Regular expression to match lower case names and colon
 lower_colon = re.compile(r'^([a-z]|_)*:([a-z]|_)*$')
+
+# Regular expression to find problematic characters
 problemchars = re.compile(r'[=\+/&<>;\'"\?%#$@\,\. \t\r\n]')
+
+# Regular expression to find non english language characters, excluding 
+# whitespace
 non_enslish_chars = re.compile(r'.*[^a-zA-Z\d\s].*',re.UNICODE)
 
 CREATED = [ "version", "changeset", "timestamp", "user", "uid"]
 
+# list to store problematic street names
 problem_streets = []
+
+# list to store incorrect cordinates
 problem_pos = []
+
+# list to store problematic post codes
 problem_postcodes = []
+
+# list to store names with non english characters
 problem_non_english = []
 
+#list to store names with abreviations
+abreviated_names = []
 
-def shape_element(element):
-  node = {
-  "address": {},
-  "created": {},
-  "pos": [0.0, 0.0],
-  "node_refs": []
+def process_attributes(node, element):
 
-  }
-
-
-  if element.tag == "node" or element.tag == "way":
+  
+  attrs = element.attrib
+  for atr in attrs:
     
-    node["type"] = element.tag
-
-    attrs = element.attrib
-    
-
-    for atr in attrs:
-      
-      value = attrs[atr]
-      if atr in CREATED:
-        
-        if 'created' not in node:
-          node['created'] = {}
-        
-        node['created'][atr] = value
-
-      elif atr in ["lat", "lon"]:
-        
-        if "pos" not in node.keys():
-          node["pos"] = [0,0]
-
+    value = attrs[atr]
+    if atr in CREATED:  
+      #get attributes that will be inside the 'created' field
+      node['created'][atr] = value
+    elif atr in ["lat", "lon"]:
+      #get the position coordinates
+      if "pos" not in node.keys():
         try:
           if atr == "lat":
             node["pos"][0] = float(value)
@@ -149,63 +147,112 @@ def shape_element(element):
         except Exception as e:
           #error converting lat or long
           problem_pos.append( (atr,value) )
-        
+      
+    else:                
+      node[atr] = value
+      #print "key: {}, value: {}".format(atr, node[atr])
 
 
-      else:                
-        node[atr] = value
+  return node
 
-      children = element.findall("tag")
-      if len(children):
-        for child in children:
-          
-            chattrs = child.attrib
-            k = chattrs['k']
-            if k.find("addr:") != -1:
-              if "address" not in node:
-                print 'adr'
-                node["address"] = {}
+def process_tag(node, element):
 
-              kvalue = chattrs['v']
-
-              if k.find("housenumber") != -1:
-                node["address"]["housenumber"] = kvalue
-              elif re.match(r"addr:street$", k):
-                node["address"]["street"] = kvalue
-                if problemchars.match(kvalue):
-                  problem_streets.append(kvalue)
-                elif (non_enslish_chars.match(kvalue) ):
-                  problem_non_english.append(kvalue)
-              elif re.match(r"addr:postcode$", k):
-                try:
-                  node["address"]["postcode"] = kvalue
-                except Exception as e:
-                  node["address"]["postcode"] = 0
-                  problem_postcodes.append(kvalue)
-                  
-                
-
-              
-
-      children = element.findall("nd")
-      if len(children):
-        
-        for child in children:
-            chattrs = child.attrib
-
-            if "node_refs" not in node.keys():
-              node["node_refs"] = []
-
-            ref = chattrs['ref']
-
-            if ref not in node["node_refs"]:
-              node["node_refs"].append( ref )
-            
-
+  children = element.findall("tag")
+  
+  if len(children) <= 0:
     return node
+  
 
-  else:
+  for child in children:
+    
+    childs_attrs = child.attrib
+    k = childs_attrs['k']
+    
+    if k.find("addr:") != -1:
+
+      
+      kvalue = childs_attrs['v']
+
+      if k.find("housenumber") != -1:
+          node["address"]["housenumber"] = kvalue
+      elif re.match(r"addr:street$", k):
+        node["address"]["street"] = kvalue
+          
+        if problemchars.match(kvalue):
+          problem_streets.append(kvalue)
+        
+        elif (non_enslish_chars.match(kvalue) ):
+          problem_non_english.append(kvalue)
+
+        if kvalue.find('.') != -1:
+          abreviated_names.append(kvalue)
+
+      elif re.match(r"addr:postcode$", k):
+        try:
+          node["address"]["postcode"] = 0
+          if kvalue[0:2] != '78':
+            problem_postcodes.append(kvalue)
+          else:
+            node["address"]["postcode"] = int(kvalue)
+        except Exception as e:
+          problem_postcodes.append(kvalue)
+
+  return node
+
+def shape_element(element):
+  """
+  This function get elements from the XML pasting, only process 'node' and
+'way' tags. The function populates the dictionary defined below so it can be
+imported to a MongoDB NO-SQL database.
+  Also the function will try to find problematic post codes, streen names and
+coordinates.
+
+  Returns:
+   None if the tag is not a node tag or a way tag, otherwsie a populated
+   node dictionary
+  """
+
+ #node dictionary 
+ #individual tags will be used to populate this dictionary so it can be imported
+ #to a MongoDB
+  node = {
+  "address": {},
+  "created": {},
+  "pos": [0.0, 0.0],
+  "node_refs": []
+  }
+
+
+  #only process node and way tags
+  if element.tag != "node" and element.tag != "way":
     return None
+
+      
+  node["type"] = element.tag
+
+  #iterate over the tag atributes
+  node = process_attributes(node, element)
+
+  node = process_tag(node, element)
+
+  children = element.findall("nd")
+  if len(children):
+    
+    for child in children:
+        childs_attrs = child.attrib
+
+        if "node_refs" not in node.keys():
+          node["node_refs"] = []
+
+        ref = childs_attrs['ref']
+
+        if ref not in node["node_refs"]:
+          node["node_refs"].append( ref )
+          
+
+  return node
+
+
 
 
 def process_map(file_in, pretty = False):
@@ -234,11 +281,10 @@ def test():
     for item in data:
       if item['address'] != {}:
         pprint.pprint( item )
-        break
         
-    print data[-1]["address"]
-    #print data[-1]["node_refs"]
-    print data[-1]["type"]
+        
+    #print data[-1]["address"]
+    #print data[-1]["type"]
     
     print "problematic names"
     i = 1
@@ -258,10 +304,15 @@ def test():
       print "{}. {}".format(i,item)
       i = i + 1
 
-
     print "names with non english chars"
     i = 1
     for item in problem_non_english:
+      print "{}. {}".format(i,item.encode('utf-8'))
+      i = i + 1
+
+    print "names with abreviations"
+    i = 1
+    for item in abreviated_names:
       print "{}. {}".format(i,item.encode('utf-8'))
       i = i + 1
 
