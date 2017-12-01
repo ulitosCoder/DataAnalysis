@@ -5,8 +5,8 @@ import pprint
 import re
 import codecs
 import json
-da_file = 'slp-cdvalles-map.osm'
-da_file = 'sample.osm'
+
+
 """
 http://overpass-api.de/api/map?bbox=-101.1700,21.2890,-98.5501,22.9356
 
@@ -230,11 +230,13 @@ coordinates.
       
   node["type"] = element.tag
 
-  #iterate over the tag atributes
+  #process the tag atributes
   node = process_attributes(node, element)
 
+  #process the tag children
   node = process_tag(node, element)
 
+  #process de nd children
   children = element.findall("nd")
   if len(children):
     
@@ -274,6 +276,9 @@ def test():
     # NOTE: if you are running this code on your computer, with a larger dataset, 
     # call the process_map procedure with pretty=False. The pretty=True option adds 
     # additional spaces to the output, making it significantly larger.
+    da_file = 'slp-cdvalles-map.osm'
+    #da_file = 'sample.osm'
+
     data = process_map(da_file, False)
     #pprint.pprint(data)
     
