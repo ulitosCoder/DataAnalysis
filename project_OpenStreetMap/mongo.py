@@ -21,3 +21,21 @@ if __name__ == "__main__":
     print( "Number of unique users: {0}".format(
         len(db.nodes.find().distinct("created.user")) ))
 
+    print( "Number of unique type of place: {0}".format(
+        len(db.nodes.find().distinct("place")) ))
+
+    pipeline = [
+      { "$match":{"place":{"$exists": "true", "$ne": "null"}} },
+      { "$group":{ "_id":"$place", "count": {"$sum":1}}} ,
+      { "$sort":  {"count":-1 } },
+      { "$limit": 5}
+    ]
+    print( "Top 5 type of places:"
+	      
+    )
+    alist = db.nodes.aggregate(pipeline)
+    i = 1
+    for item in alist:
+      print( "{}.- {}".format(i, item) )
+      i = i + 1
+

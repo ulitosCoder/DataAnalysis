@@ -156,6 +156,11 @@ def process_attributes(node, element):
   return node
 
 def process_tag(node, element):
+  """
+    This function proves the 'tag' children of a node tag, these children 
+  provide details of the nodes as name  of the settlement
+
+  """
 
   children = element.findall("tag")
   
@@ -167,11 +172,10 @@ def process_tag(node, element):
     
     childs_attrs = child.attrib
     k = childs_attrs['k']
-    
-    if k.find("addr:") != -1:
+    kvalue = childs_attrs['v']
 
-      
-      kvalue = childs_attrs['v']
+    if k.find("addr:") != -1:
+      #gets the addres detail of a node
 
       if k.find("housenumber") != -1:
           node["address"]["housenumber"] = kvalue
@@ -196,6 +200,16 @@ def process_tag(node, element):
             node["address"]["postcode"] = int(kvalue)
         except Exception as e:
           problem_postcodes.append(kvalue)
+
+    elif k == "place":
+      #gets the type of place of the node
+      node["place"] = kvalue
+
+    elif k == "is_in":
+      #gets the type of place of the node
+      node["is_in"] = kvalue
+
+
 
   return node
 
