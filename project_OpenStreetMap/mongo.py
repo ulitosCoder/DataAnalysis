@@ -36,6 +36,6 @@ if __name__ == "__main__":
     alist = db.nodes.aggregate(pipeline)
     i = 1
     for item in alist:
-      print( "{}.- {}".format(i, item) )
+      print( "{}.- Place: {}, count: {}".format(i, item["_id"],item["count"]) )
       i = i + 1
 
