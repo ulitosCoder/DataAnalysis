@@ -310,9 +310,6 @@ def test():
         pprint.pprint( item )
         break;
         
-        
-    #print data[-1]["address"]
-    #print data[-1]["type"]
     
     print "problematic names"
     i = 1
