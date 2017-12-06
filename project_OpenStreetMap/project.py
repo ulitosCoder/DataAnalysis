@@ -135,16 +135,18 @@ def process_attributes(node, element):
     value = attrs[atr]
     if atr in CREATED:  
       #get attributes that will be inside the 'created' field
-      node['created'][atr] = value
+      node["created"][atr] = value
     elif atr in ["lat", "lon"]:
       #get the position coordinates
-      if "pos" not in node.keys():
-        try:
-          if atr == "lat":
-            node["pos"][0] = float(value)
-          else:
-            node["pos"][1] = float(value)
-        except Exception as e:
+      
+      try:
+        if atr == "lat":
+          node["pos"][0] = float(value)
+        else:
+          node["pos"][1] = float(value)
+
+      
+      except Exception as e:
           #error converting lat or long
           problem_pos.append( (atr,value) )
       
@@ -209,7 +211,13 @@ def process_tag(node, element):
       #gets the type of place of the node
       node["is_in"] = kvalue
 
+    elif k == "population":
+      #gets the type of place of the node
+      node["population"] = kvalue
 
+    elif k == "name":
+      #gets the type of place of the node
+      node["name"] = kvalue
 
   return node
 
@@ -291,7 +299,7 @@ def test():
     # call the process_map procedure with pretty=False. The pretty=True option adds 
     # additional spaces to the output, making it significantly larger.
     da_file = 'slp-cdvalles-map.osm'
-    #da_file = 'sample.osm'
+    da_file = 'sample.osm'
 
     data = process_map(da_file, False)
     #pprint.pprint(data)
@@ -300,6 +308,7 @@ def test():
     for item in data:
       if item['address'] != {}:
         pprint.pprint( item )
+        break;
         
         
     #print data[-1]["address"]
