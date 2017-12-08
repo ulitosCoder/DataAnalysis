@@ -213,7 +213,7 @@ def process_tag(node, element):
 
     elif k == "population":
       #gets the type of place of the node
-      node["population"] = kvalue
+      node["population"] = int(kvalue)
 
     elif k == "name":
       #gets the type of place of the node
@@ -299,7 +299,7 @@ def test():
     # call the process_map procedure with pretty=False. The pretty=True option adds 
     # additional spaces to the output, making it significantly larger.
     da_file = 'slp-cdvalles-map.osm'
-    da_file = 'sample.osm'
+    #da_file = 'sample.osm'
 
     data = process_map(da_file, False)
     #pprint.pprint(data)
