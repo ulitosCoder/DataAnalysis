@@ -95,6 +95,26 @@ should be turned into
 "node_refs": ["305896090", "1719825889"]
 """
 
+abreviations_map = {
+  "Av."   : "Avenida",
+  "Prol." : "Prolongacion",
+  "Blvd." : "Boulevard",
+  "Cd."   : "Ciudad",
+  "Dr."   : "Doctor",
+  "esq."   : "esquina",
+  "Esq."   : "esquina",
+  "Gral. Blas Escontría" : "General Blas Escontría"
+}
+
+names_map = {
+  "Vicente C. Salazar"  : "Vicente Calle Salazar",
+  "Francisco I. Madero" : "Francisco Ignacio Madero",
+  "Pedro J. Méndez"     : "Pedro José Méndez"
+
+}
+
+#Regular expression for abbreviatons
+abrev = re.compile(r'[ ]*[a-zA-Z]+\.')
 
 # Regular expression to match lower case names and under score
 lower = re.compile(r'^([a-z]|_)*$')
@@ -103,7 +123,7 @@ lower = re.compile(r'^([a-z]|_)*$')
 lower_colon = re.compile(r'^([a-z]|_)*:([a-z]|_)*$')
 
 # Regular expression to find problematic characters
-problemchars = re.compile(r'[=\+/&<>;\'"\?%#$@\,\. \t\r\n]')
+problemchars = re.compile(r'[=\+/&<>;\'"\?%#$@\,\.\t\r\n]')
 
 # Regular expression to find non english language characters, excluding 
 # whitespace
@@ -177,31 +197,56 @@ def process_tag(node, element):
     kvalue = childs_attrs['v']
 
     if k.find("addr:") != -1:
-      #gets the addres detail of a node
+      #gets the addres details of a node
 
       if k.find("housenumber") != -1:
+        #get house nomber
           node["address"]["housenumber"] = kvalue
+
       elif re.match(r"addr:street$", k):
-        node["address"]["street"] = kvalue
-          
-        if problemchars.match(kvalue):
-          problem_streets.append(kvalue)
+        #get street name
         
+          
+        if problemchars.findall(kvalue):
+          #check if name has any problematic characters
+          #print "prob char {}".format(kvalue.encode("utf-8"))
+          problem_streets.append(kvalue)
+
         elif (non_enslish_chars.match(kvalue) ):
+          #check if the street name contains non english characters
           problem_non_english.append(kvalue)
 
         if kvalue.find('.') != -1:
+          #check if the name has any abreviation for:
+          # Avenida, Ciudad, Boulevard, Prolongacion
           abreviated_names.append(kvalue)
+
+          print "abr char {}".format(kvalue.encode("utf-8"))
+          #replace abbreviated person names
+          if kvalue in abreviations_map:
+            kvalue = abreviations_map[kvalue]
+
+          #replace street types abbreviations
+          ablist = abrev.findall(kvalue)
+          print ablist
+          for abr in ablist:
+            abr = abr.strip()
+            if abr in abreviations_map:
+              kvalue = kvalue.replace(abr,abreviations_map[abr])
+              
+          print "final: {}".format(kvalue.encode("utf-8"))
+          node["address"]["street"] = kvalue
 
       elif re.match(r"addr:postcode$", k):
         try:
-          node["address"]["postcode"] = 0
-          if kvalue[0:2] != '78':
-            problem_postcodes.append(kvalue)
-          else:
-            node["address"]["postcode"] = int(kvalue)
+          node["address"]["postcode"] = int(kvalue)
         except Exception as e:
+          node["address"]["postcode"] = 0
           problem_postcodes.append(kvalue)
+          print "bad post: {}".format(kvalue)
+
+          if kvalue == "Lomas 2a":
+            node["address"]["postcode"] = 78210
 
     elif k == "place":
       #gets the type of place of the node
@@ -302,19 +347,12 @@ def test():
     #da_file = 'sample.osm'
 
     data = process_map(da_file, False)
-    #pprint.pprint(data)
-    
-
-    for item in data:
-      if item['address'] != {}:
-        pprint.pprint( item )
-        break;
-        
+           
     
     print "problematic names"
     i = 1
     for item in problem_streets:
-      print "{}. {}".format(i,item)
+      print "{}. {}".format(i,item.encode('utf-8'))
       i = i + 1
 
     print "problematic positions"
@@ -325,8 +363,8 @@ def test():
 
     print "problematic post codes"
     i = 1
-    for item in problem_pos:
-      print "{}. {}".format(i,item)
+    for item in problem_postcodes:
+      print "{}. {}".format(i,item.encode('utf-8'))
       i = i + 1
 
     print "names with non english chars"
