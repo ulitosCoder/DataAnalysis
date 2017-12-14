@@ -23,17 +23,30 @@ def print_list(title,pipeline,db, aggregated=True):
 def plot_data(all_data):
    
 
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(9, 3))
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(9, 5))
 
      
-    axes[0].hist(all_data["population"], 
-                  bins="auto", normed=0, histtype='bar' )
+    axes[0].hist(all_data["population"],  histtype='barstacked')
 
+    axes[0].set_title("Population histogram")
 
-    #axes[1].bar(x=all_data["population"],
-    #               height=all_data["population"].max )
+    axes[0].set_xlabel("Population")
 
+    axes[0].set_ylabel("Locations count")
+
+    index = np.arange(all_data["population"].count()) 
+    axes[1].bar(x=index,
+                height=all_data["population"],
+                log=True  )
+
+    axes[1].set_title("Population chart")
+
+    axes[1].set_xlabel("Towns, cities, etc.")
+    
+    axes[1].set_ylabel("Population, log scale")
+    
     plt.savefig('foo.png')
+ 
     return
 
 if __name__ == "__main__":
